@@ -1,0 +1,12 @@
+[submodule "external/LuxTTS"]
+	path = external/LuxTTS
+	url = https://github.com/ysharma3501/LuxTTS
+[submodule "external/voicebox"]
+	path = external/voicebox
+	url = https://github.com/jamiepine/voicebox
+[submodule "external/OmniVoice-Studio"]
+	path = external/OmniVoice-Studio
+	url = https://github.com/debpalash/OmniVoice-Studio
+[submodule "external/MOSS-TTS-Nano"]
+	path = external/MOSS-TTS-Nano
+	url = https://github.com/OpenMOSS/MOSS-TTS-Nano
