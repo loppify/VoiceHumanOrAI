@@ -165,8 +165,23 @@ audio {
 .Select-input > input {
     color: #fff !important;
 }
-.Select-placeholder {
-    color: rgba(255, 255, 255, 0.4) !important;
-    display: flex;
-    align-items: center;
+.js-plotly-plot {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.border-end {
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Label styling */
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.5) !important;
+    font-weight: 500;
+}
+
+/* Results hover */
+.rounded-3:hover {
+    filter: brightness(1.1);
+    transition: all 0.3s ease;
 }

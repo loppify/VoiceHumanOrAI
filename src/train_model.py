@@ -25,10 +25,13 @@ def train_model():
     human_files = glob.glob(os.path.join(HUMAN_DIR, "*.wav"))
     ai_files = glob.glob(os.path.join(AI_DIR, "*.wav"))
 
-    if len(human_files) == 0 and len(ai_files) == 0:
-        print("ПОМИЛКА: Датасет порожній. Будь ласка, додайте WAV файли у:")
-        print(f"  - {HUMAN_DIR}")
-        print(f"  - {AI_DIR}")
+    if len(human_files) == 0 or len(ai_files) == 0:
+        print("ПОМИЛКА: Для навчання потрібні обидва класи (Людина та ШІ).")
+        print(f"Знайдено: {len(human_files)} файлів 'Людина', {len(ai_files)} файлів 'ШІ'")
+        return
+
+    if len(human_files) < 2 or len(ai_files) < 2:
+        print("ПОМИЛКА: Недостатньо даних для валідації. Потрібно хоча б по 2 семпли кожного класу.")
         return
 
     print(f"Знайдено: {len(human_files)} файлів 'Людина', {len(ai_files)} файлів 'ШІ'")
