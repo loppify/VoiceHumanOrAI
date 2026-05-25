@@ -1,50 +1,88 @@
-# Комплексна Система Класифікації Мовного Сигналу (Людина vs ШІ)
+# Voice I/O Lab: Human or AI Classifier 🎙️🤖
 
-Цей проєкт містить програмну реалізацію гібридного підходу до класифікації аудіозаписів:
-1. **Біонічний метод:** базується на координатно-топологічному відображенні (простір Хелвага-Щерби) та аналізі скупчень.
-2. **Machine Learning метод:** класичний підхід з використанням Random Forest та екстракції ознак MFCCs, Chroma, Spectral Rolloff.
+A hybrid analysis laboratory designed to distinguish between natural human speech and AI-generated deepfakes. This project combines **Bionic Analysis** (Coordinate-Topological mapping in Helvag-Shcherba space) with **Classic Machine Learning** (Random Forest + MFCC) to provide a high-confidence verdict on voice authenticity.
 
-## Структура проєкту
-* `src/app.py` - Веб-застосунок (графічний інтерфейс).
-* `src/bionic_core.py` - Ядро алгоритмів біонічного розпізнавання.
-* `src/ml_core.py` - Ядро алгоритмів машинного навчання.
-* `src/train_model.py` - Скрипт для тренування ML моделі на ваших даних.
-* `dataset/human/` та `dataset/ai/` - Папки для зберігання тренувальних WAV файлів.
-* `models/` - Папка, куди зберігається натренована ML-модель.
-* `tests/` - Юніт-тести для перевірки коректності роботи алгоритмів.
+![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)
+![Architecture](https://img.shields.io/badge/architecture-Microservices-orange)
 
-## Встановлення залежностей
-Проєкт використовує Poetry (за наявності `pyproject.toml`), але для коректної роботи доданих скриптів потрібні додаткові бібліотеки.
+## ✨ Key Features
 
-Встановіть необхідні пакети через pip (або poetry, якщо використовуєте його):
+*   **Hybrid Detection:** Uses two independent classification engines for maximum reliability.
+*   **Autonomous TTS Infrastructure:** Automatically manages external TTS servers (LuxTTS, MOSS-TTS) in isolated virtual environments.
+*   **Real-time Analysis:** Interactive Dash UI for audio uploading, waveform visualization, and spectrogram generation.
+*   **Dataset Builder:** Integrated tool to pull data from HuggingFace and generate synthetic pairs on the fly.
+*   **Explainable AI (XAI):** Visualizes feature importance and topological clusters to explain *why* a voice is flagged as AI.
+
+## 🏗️ Architecture
+
+The project follows a modular, microservice-inspired architecture:
+- **`src/app.py`**: The central Dash-based Web UI.
+- **`src/bionic_core.py`**: Implementation of the bionic coordinate-topological method.
+- **`src/ml_core.py`**: Feature extraction and Random Forest classifier.
+- **`dataset_builder.py`**: Orchestrates data collection and automated TTS server lifecycles.
+- **`external/`**: Cloned submodules of state-of-the-art TTS engines.
+- **`src/servers/`**: Custom API wrappers to run external TTS engines as independent services.
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.11 or higher
+- [Poetry](https://python-poetry.org/docs/#installation)
+- `ffmpeg` installed on your system
+
+### Installation
+
+1. Clone the repository with submodules:
+   ```bash
+   git clone --recursive https://github.com/your-repo/VoiceHumanOrAI.git
+   cd VoiceHumanOrAI
+   ```
+
+2. Install dependencies:
+   ```bash
+   poetry install
+   ```
+
+3. Setup environment variables:
+   Create a `.env` file in the root directory:
+   ```env
+   HuggingFace_TOKEN=your_hf_token_here
+   ```
+
+### Running the Application
+
+Launch the main analysis laboratory:
 ```bash
-pip install numpy scipy librosa scikit-learn dash dash-bootstrap-components plotly tqdm pytest joblib
+poetry run python src/app.py
 ```
+Open your browser at `http://127.0.0.1:8050`.
 
-*Або через Poetry:*
+## 🛠️ Usage
+
+### 1. Analysis Laboratory
+Upload any `.wav` file or select one from the local database. The system will generate:
+- **Oscillogram:** Time-domain signal visualization.
+- **Spectrogram:** Frequency-domain energy distribution.
+- **Bionic Space:** Topological distribution of voice oscillations.
+- **ML Verdict:** Classification probability based on MFCC features.
+
+### 2. Training & Data Generation
+- Select a dataset from HuggingFace (e.g., `minds14`).
+- Choose a TTS Provider (e.g., `LuxTTS`).
+- Click **"Start Generation"**. The system will automatically create a `venv` for the provider, install its dependencies, start the background server, and generate synthetic voice samples.
+- Once finished, click **"Train Model"** to update the Random Forest classifier with new data.
+
+## 🔬 Running Experiments
+
+To run a comparative scientific experiment and generate a markdown report:
 ```bash
-poetry add numpy scipy librosa scikit-learn dash dash-bootstrap-components plotly tqdm joblib
-poetry add --group dev pytest
+poetry run python run_experiment.py
 ```
+Results will be saved in `EXPERIMENT_REPORT.md`.
 
-## Використання
+## 📜 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### 1. Навчання ML моделі
-Перш ніж використовувати ML-модуль у застосунку, його необхідно навчити. Покладіть кілька WAV-файлів (можна по 10-15 сек) у папки `dataset/human/` та `dataset/ai/`, після чого запустіть скрипт:
-```bash
-python src/train_model.py
-```
-Це створить файли моделі у папці `models/`.
-
-### 2. Запуск веб-застосунку
-Після навчання моделі (або просто для тестування біонічного методу) запустіть графічний інтерфейс:
-```bash
-python src/app.py
-```
-Перейдіть у браузері за адресою `http://127.0.0.1:8050/`. Ви зможете завантажити WAV-файл і миттєво побачити результати аналізу двома методами.
-
-### 3. Запуск тестів
-Щоб перевірити коректність роботи алгоритмів:
-```bash
-pytest tests/
-```
+---
+*Created as part of an investigation into high-fidelity voice synthesis detection.*

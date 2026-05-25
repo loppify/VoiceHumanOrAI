@@ -6,3 +6,4 @@ dataset/
 *.wav
 *.mp3
 cv-corpus/
+.pytest_cache/

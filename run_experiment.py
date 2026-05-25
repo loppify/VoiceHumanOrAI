@@ -10,7 +10,7 @@ from src.ml_core import MLClassifier
 
 # Конфігурація експерименту
 EXP_DIR = "experiment_data"
-SAMPLES_PER_GROUP = 30 # Збільшено для кращої статистики
+SAMPLES_PER_GROUP = 100 # Збільшено для кращої статистики
 
 
 async def run_experiment():
@@ -27,8 +27,15 @@ async def run_experiment():
         human_dir = os.path.join(group_dir, "human")
 
         # Крок 1: Генерація даних
-        await dataset_builder.build_dataset(samples=SAMPLES_PER_GROUP, provider_name=provider, human_dir=human_dir,
-                                            ai_dir=ai_dir)
+        await dataset_builder.build_dataset(
+            samples=SAMPLES_PER_GROUP, 
+            provider_name=provider, 
+            dataset_name="PolyAI/minds14",
+            config_name="en-US",
+            split_name="train",
+            human_dir=human_dir,
+            ai_dir=ai_dir
+        )
 
         # Крок 2: Аналіз
         bionic = BionicClassifier()
