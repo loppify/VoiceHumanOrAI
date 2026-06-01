@@ -105,8 +105,7 @@ class BionicClassifier:
         import os
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Файл не знайдено: {filepath}")
-            
-        # Завантаження через librosa для кращої підтримки форматів
+
         sig, rate = librosa.load(filepath, sr=self.sample_rate)
         # Приведення до 8-бітної шкали (-128...127)
         sig = sig * 128.0
@@ -117,12 +116,10 @@ class BionicClassifier:
 
         dist = []
         if len(centers) > 1:
-            # Обчислюємо відстані між усіма знайденими центрами (навіть якщо їх 2)
             dist = pdist(centers)
 
         mean_r = np.mean(dist) if len(dist) > 0 else 0.0
 
-        # Захист від ділення на нуль та обчислення Jitter/Shimmer
         jitter = 0.0
         shimmer = 0.0
         variability = 0.0
@@ -139,12 +136,8 @@ class BionicClassifier:
 
             variability = np.std(points[:, 0]) + np.std(points[:, 1])
 
-        # НОВА ФОРМУЛА SCORE: 
-        # У людини природно вищий Jitter (тремор) та Shimmer, а також більший розкид (mean_r).
-        # Навіть якщо центри не знайдено (короткий запис), високий Jitter врятує ситуацію.
         score = (mean_r * 0.5) + (variability * 0.3) + (jitter * 2.0) + shimmer
 
-        # Обмежуємо score знизу нулем
         score = max(0.0, score)
         return {
             'points': points, 'centers': centers, 'distances': dist,
