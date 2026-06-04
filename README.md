@@ -3,7 +3,7 @@
 A hybrid analysis laboratory designed to distinguish between natural human speech and AI-generated deepfakes. This project combines **Bionic Analysis** (Coordinate-Topological mapping in Helvag-Shcherba space) with **Classic Machine Learning** (Random Forest + MFCC) to provide a high-confidence verdict on voice authenticity.
 
 ![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python Version](https://img.shields.io/badge/python-3.13%2B-blue)
+![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Framework](https://img.shields.io/badge/Frontend-Dash-green.svg)
 ![Status](https://img.shields.io/badge/Status-Completed-brightgreen.svg)
 ![Architecture](https://img.shields.io/badge/architecture-Microservices-orange)
