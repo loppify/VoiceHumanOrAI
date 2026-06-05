@@ -4,6 +4,7 @@ A hybrid analysis laboratory designed to distinguish between natural human speec
 
 ![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)
+![Framework](https://img.shields.io/badge/Frontend-Dash-green.svg)
 ![Architecture](https://img.shields.io/badge/architecture-Microservices-orange)
 
 ## ✨ Key Features
@@ -13,6 +14,9 @@ A hybrid analysis laboratory designed to distinguish between natural human speec
 *   **Real-time Analysis:** Interactive Dash UI for audio uploading, waveform visualization, and spectrogram generation.
 *   **Dataset Builder:** Integrated tool to pull data from HuggingFace and generate synthetic pairs on the fly.
 *   **Explainable AI (XAI):** Visualizes feature importance and topological clusters to explain *why* a voice is flagged as AI.
+
+[https://www.canva.com/design/DAHKv5u8qto/7ZaNPKdI9qOb6q9vSs2AvQ/view](https://www.canva.com/design/DAHKv5u8qto/7ZaNPKdI9qOb6q9vSs2AvQ/view?embed)
+
 
 ## 🏗️ Architecture
 
