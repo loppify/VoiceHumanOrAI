@@ -321,18 +321,36 @@ def process_audio(contents, dropdown_path, bionic_threshold, filename):
     wait_div = html.Div("Очікування...", className="text-muted fst-italic mt-3")
 
     target_path, audio_src, display_name = None, None, ""
+    
+    # Determine which source to use based on inputs, regardless of trigger
+    # Prefer dropdown if it's the trigger, else prefer upload if it's the trigger. 
+    # If slider is the trigger, we need to know what the current active file is.
+    # To keep it simple without adding dcc.Store, we prioritize the last action.
+    # Actually, we can check if dropdown has a value. But if user uploaded a file, contents exists.
+    # Let's prioritize upload if it was just triggered, otherwise use dropdown, OR we write the uploaded file to a stable temp name.
+    
+    # Створюємо стабільне ім'я для завантаженого файлу, щоб він не зникав при русі слайдера
+    stable_temp_dir = os.path.join(tempfile.gettempdir(), "voice_lab_temp")
+    os.makedirs(stable_temp_dir, exist_ok=True)
+    
     if trigger_id == 'upload-audio' and contents:
         decoded = base64.b64decode(contents.split(',')[1])
-        target_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}_{filename}")
+        target_path = os.path.join(stable_temp_dir, f"last_uploaded.wav")
         with open(target_path, 'wb') as f:
             f.write(decoded)
         audio_src, display_name = contents, filename
-    elif trigger_id == 'dataset-dropdown' and dropdown_path:
+    elif dropdown_path and (trigger_id == 'dataset-dropdown' or (trigger_id == 'bionic-threshold-slider' and not contents)):
         target_path = dropdown_path
         display_name = os.path.basename(dropdown_path)
         with open(target_path, 'rb') as f:
             audio_src = f"data:audio/wav;base64,{base64.b64encode(f.read()).decode()}"
+    elif contents and trigger_id == 'bionic-threshold-slider':
+        target_path = os.path.join(stable_temp_dir, f"last_uploaded.wav")
+        audio_src, display_name = contents, filename
     else:
+        return no_update, no_update, empty_fig, empty_fig, empty_scatter, empty_fig, wait_div, wait_div
+
+    if not target_path or not os.path.exists(target_path):
         return no_update, no_update, empty_fig, empty_fig, empty_scatter, empty_fig, wait_div, wait_div
 
     fig_signal, fig_scatter, fig_importance, fig_spectrogram = go.Figure(), go.Figure(), go.Figure(), go.Figure()
@@ -340,70 +358,67 @@ def process_audio(contents, dropdown_path, bionic_threshold, filename):
                               style={"width": "100%", "borderRadius": "30px", "height": "40px"})
 
     try:
+        import librosa
+        res = bionic_model.analyze_file(target_path, threshold=bionic_threshold)
+        b_sub = f"Score: {res['mean_r']:.1f} | Jitter: {res['jitter']:.1f}% | Shimmer: {res['shimmer']:.1f}%"
+        b_html = format_verdict(res['verdict'], b_sub)
+
+        fig_signal.add_trace(go.Scatter(y=res['signal'], line=dict(color='#00f2fe', width=1), fill='tozeroy',
+                                        fillcolor='rgba(0, 242, 254, 0.1)'))
+        fig_signal.update_layout(template="plotly_dark", margin=dict(l=10, r=10, t=10, b=10),
+                                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                 xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
+
+        # Спектрограма
+        D = librosa.stft(res['signal'] / 128.0)
+        S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
+        fig_spectrogram.add_trace(go.Heatmap(z=S_db, colorscale='Viridis', showscale=False))
+        fig_spectrogram.update_layout(template="plotly_dark", margin=dict(l=10, r=10, t=10, b=10),
+                                      paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                      xaxis=dict(showgrid=False, title="Час (frames)"),
+                                      yaxis=dict(showgrid=False, title="Частота (bins)"))
+
+        if len(res['points']) > 0:
+            fig_scatter.add_trace(
+                go.Scatter(x=res['points'][:, 0], y=res['points'][:, 1], mode='markers', name='Points',
+                           marker=dict(size=6, color='#00f2fe', opacity=0.6, line=dict(width=1, color='white'))))
+            if len(res['centers']) == 3:
+                c = np.vstack([res['centers'], res['centers'][0]])
+                fig_scatter.add_trace(go.Scatter(x=c[:, 0], y=c[:, 1], mode='lines+markers', name='Triangle',
+                                                 line=dict(color='#ff0844', width=2),
+                                                 marker=dict(size=12, color='#ff0844', symbol='diamond')))
+        fig_scatter.update_layout(template="plotly_dark", xaxis_title="V1", yaxis_title="V2", xaxis_range=[0, 250],
+                                  yaxis_range=[0, 250], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                  xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+                                  yaxis=dict(gridcolor="rgba(255,255,255,0.05)"))
+    except Exception as e:
+        import traceback
+        print(f"Bionic Error: {traceback.format_exc()}")
+        b_html = html.Div(f"Bionic Error: {e}", className="text-danger mt-3")
+
+    # ML Класифікація
+    m_html = html.Div("ML Model not trained", className="text-warning mt-3")
+    
+    # Створюємо локальний екземпляр для підвантаження актуальних файлів з диску
+    local_ml = MLClassifier(model_type='rf')
+    
+    if local_ml.is_trained:
         try:
-            import librosa
-            res = bionic_model.analyze_file(target_path, threshold=bionic_threshold)
-            b_sub = f"Score: {res['mean_r']:.1f} | Jitter: {res['jitter']:.1f}% | Shimmer: {res['shimmer']:.1f}%"
-            b_html = format_verdict(res['verdict'], b_sub)
-
-            fig_signal.add_trace(go.Scatter(y=res['signal'], line=dict(color='#00f2fe', width=1), fill='tozeroy',
-                                            fillcolor='rgba(0, 242, 254, 0.1)'))
-            fig_signal.update_layout(template="plotly_dark", margin=dict(l=10, r=10, t=10, b=10),
-                                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                     xaxis=dict(showgrid=False), yaxis=dict(showgrid=False))
-
-            # Спектрограма
-            D = librosa.stft(res['signal'] / 128.0)
-            S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
-            fig_spectrogram.add_trace(go.Heatmap(z=S_db, colorscale='Viridis', showscale=False))
-            fig_spectrogram.update_layout(template="plotly_dark", margin=dict(l=10, r=10, t=10, b=10),
-                                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                          xaxis=dict(showgrid=False, title="Час (frames)"),
-                                          yaxis=dict(showgrid=False, title="Частота (bins)"))
-
-            if len(res['points']) > 0:
-                fig_scatter.add_trace(
-                    go.Scatter(x=res['points'][:, 0], y=res['points'][:, 1], mode='markers', name='Points',
-                               marker=dict(size=6, color='#00f2fe', opacity=0.6, line=dict(width=1, color='white'))))
-                if len(res['centers']) == 3:
-                    c = np.vstack([res['centers'], res['centers'][0]])
-                    fig_scatter.add_trace(go.Scatter(x=c[:, 0], y=c[:, 1], mode='lines+markers', name='Triangle',
-                                                     line=dict(color='#ff0844', width=2),
-                                                     marker=dict(size=12, color='#ff0844', symbol='diamond')))
-            fig_scatter.update_layout(template="plotly_dark", xaxis_title="V1", yaxis_title="V2", xaxis_range=[0, 250],
-                                      yaxis_range=[0, 250], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                      xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
-                                      yaxis=dict(gridcolor="rgba(255,255,255,0.05)"))
+            ml_label, ml_prob = local_ml.predict(target_path)
+            m_html = format_verdict(ml_label, f"Confidence: {ml_prob * 100:.1f}%")
+            imp = local_ml.get_feature_importance()[:10]
+            if imp:
+                n, v = zip(*imp)
+                fig_importance.add_trace(go.Bar(x=list(v), y=list(n), orientation='h', marker=dict(color='#4facfe',
+                                                                                                   line=dict(
+                                                                                                       color='rgba(255,255,255,0.5)',
+                                                                                                       width=1))))
+                fig_importance.update_layout(template="plotly_dark", margin=dict(l=10, r=10, t=10, b=10),
+                                             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                             yaxis={'autorange': 'reversed'},
+                                             xaxis=dict(gridcolor="rgba(255,255,255,0.05)"))
         except Exception as e:
-            import traceback
-            print(f"Bionic Error: {traceback.format_exc()}")
-            b_html = html.Div(f"Bionic Error: {e}", className="text-danger mt-3")
-
-        # ML Класифікація
-        m_html = html.Div("ML Model not trained", className="text-warning mt-3")
-        
-        # Створюємо локальний екземпляр для підвантаження актуальних файлів з диску
-        local_ml = MLClassifier(model_type='rf')
-        
-        if local_ml.is_trained:
-            try:
-                ml_label, ml_prob = local_ml.predict(target_path)
-                m_html = format_verdict(ml_label, f"Confidence: {ml_prob * 100:.1f}%")
-                imp = local_ml.get_feature_importance()[:10]
-                if imp:
-                    n, v = zip(*imp)
-                    fig_importance.add_trace(go.Bar(x=list(v), y=list(n), orientation='h', marker=dict(color='#4facfe',
-                                                                                                       line=dict(
-                                                                                                           color='rgba(255,255,255,0.5)',
-                                                                                                           width=1))))
-                    fig_importance.update_layout(template="plotly_dark", margin=dict(l=10, r=10, t=10, b=10),
-                                                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                                 yaxis={'autorange': 'reversed'},
-                                                 xaxis=dict(gridcolor="rgba(255,255,255,0.05)"))
-            except Exception as e:
-                m_html = html.Div(f"ML Error: {e}", className="text-danger mt-3")
-    finally:
-        if trigger_id == 'upload-audio' and target_path and os.path.exists(target_path): os.remove(target_path)
+            m_html = html.Div(f"ML Error: {e}", className="text-danger mt-3")
 
     return html.Span([html.I(className="fa-solid fa-headphones me-2"),
                       display_name]), audio_player, fig_signal, fig_spectrogram, fig_scatter, fig_importance, b_html, m_html
