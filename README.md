@@ -15,8 +15,10 @@ A hybrid analysis laboratory designed to distinguish between natural human speec
 *   **Dataset Builder:** Integrated tool to pull data from HuggingFace and generate synthetic pairs on the fly.
 *   **Explainable AI (XAI):** Visualizes feature importance and topological clusters to explain *why* a voice is flagged as AI.
 
+Link to presentation:
 [https://www.canva.com/design/DAHKv5u8qto/7ZaNPKdI9qOb6q9vSs2AvQ/view](https://www.canva.com/design/DAHKv5u8qto/7ZaNPKdI9qOb6q9vSs2AvQ/view?embed)
 
+[Demo video](/demo/demo.mp4)
 
 ## 🏗️ Architecture
 
