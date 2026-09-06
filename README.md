@@ -1,94 +1,136 @@
-# Voice I/O Lab: Human or AI Classifier 🎙️🤖
+# Voice I/O Lab
 
-A hybrid analysis laboratory designed to distinguish between natural human speech and AI-generated deepfakes. This project combines **Bionic Analysis** (Coordinate-Topological mapping in Helvag-Shcherba space) with **Classic Machine Learning** (Random Forest + MFCC) to provide a high-confidence verdict on voice authenticity.
+An academic audio-analysis application for exploring differences between recorded human speech and synthesized speech.
 
-![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)
-![Framework](https://img.shields.io/badge/Frontend-Dash-green.svg)
-![Architecture](https://img.shields.io/badge/architecture-Microservices-orange)
+The repository is named `VoiceHumanOrAI`. Its Dash interface is called **Voice I/O Lab**. It combines audio visualization, a Random Forest classifier, an experimental signal-analysis method, and tools for preparing paired human/TTS samples.
 
-## ✨ Key Features
+This is a personal academic project by [Rostyslav Tarasov](https://github.com/loppify), developed with substantial AI assistance. It represents experimentation with audio processing and ML integration; it does not claim a reliable general-purpose deepfake detector.
 
-*   **Hybrid Detection:** Uses two independent classification engines for maximum reliability.
-*   **Autonomous TTS Infrastructure:** Automatically manages external TTS servers (LuxTTS, MOSS-TTS) in isolated virtual environments.
-*   **Real-time Analysis:** Interactive Dash UI for audio uploading, waveform visualization, and spectrogram generation.
-*   **Dataset Builder:** Integrated tool to pull data from HuggingFace and generate synthetic pairs on the fly.
-*   **Explainable AI (XAI):** Visualizes feature importance and topological clusters to explain *why* a voice is flagged as AI.
+[Demo video](demo/demo.mp4) · [Extended demo](demo/demo-full.mp4) · [Presentation](https://www.canva.com/design/DAHKv5u8qto/7ZaNPKdI9qOb6q9vSs2AvQ/view)
 
-Link to presentation:
-[https://www.canva.com/design/DAHKv5u8qto/7ZaNPKdI9qOb6q9vSs2AvQ/view](https://www.canva.com/design/DAHKv5u8qto/7ZaNPKdI9qOb6q9vSs2AvQ/view?embed)
+## Features
 
-[Demo video](/demo/demo.mp4)
+- Upload a WAV file or select a sample from a local dataset.
+- Inspect waveforms and spectrograms in a Dash/Plotly interface.
+- Extract MFCC, chroma, and spectral-rolloff features with librosa.
+- Train and run a Random Forest classifier.
+- Display classifier probabilities and feature importance.
+- Explore the separate experimental analysis implemented in `src/bionic_core.py`.
+- Build paired human and synthesized samples using a Hugging Face dataset and a TTS provider.
+- Run a comparison script and generate an experiment report.
 
-## 🏗️ Architecture
+## Methods
 
-The project follows a modular, microservice-inspired architecture:
-- **`src/app.py`**: The central Dash-based Web UI.
-- **`src/bionic_core.py`**: Implementation of the bionic coordinate-topological method.
-- **`src/ml_core.py`**: Feature extraction and Random Forest classifier.
-- **`dataset_builder.py`**: Orchestrates data collection and automated TTS server lifecycles.
-- **`external/`**: Cloned submodules of state-of-the-art TTS engines.
-- **`src/servers/`**: Custom API wrappers to run external TTS engines as independent services.
+The ML classifier uses 33 features: 20 mean MFCC values, 12 mean chroma values, and one mean spectral-rolloff value. Features pass through a fitted scaler before Random Forest inference.
 
-## 🚀 Getting Started
+The second analysis path is implemented separately in `src/bionic_core.py`. It explores signal measurements and a coordinate/topological representation. Its output is experimental; the presence of two methods does not establish that their combination improves detection.
 
-### Prerequisites
-- Python 3.11 or higher
-- [Poetry](https://python-poetry.org/docs/#installation)
-- `ffmpeg` installed on your system
+## Install and launch
 
-### Installation
+Requirements: Python compatible with the lockfile and the declared `>=3.11,<3.15` range, Poetry, and FFmpeg available on `PATH`. Python 3.12 is a reasonable starting point for the declared scientific dependencies. Dependency requirements may narrow the top-level Python range.
 
-1. Clone the repository with submodules:
-   ```bash
-   git clone --recursive https://github.com/your-repo/VoiceHumanOrAI.git
-   cd VoiceHumanOrAI
-   ```
-
-2. Install dependencies:
-   ```bash
-   poetry install
-   ```
-
-3. Setup environment variables:
-   Create a `.env` file in the root directory:
-   ```env
-   HuggingFace_TOKEN=your_hf_token_here
-   ```
-
-### Running the Application
-
-Launch the main analysis laboratory:
 ```bash
+git clone https://github.com/loppify/VoiceHumanOrAI.git
+cd VoiceHumanOrAI
+poetry install
 poetry run python src/app.py
 ```
-Open your browser at `http://127.0.0.1:8050`.
 
-## 🛠️ Usage
+Open [the local interface](http://127.0.0.1:8050/). Run commands from the repository root so dataset and model paths resolve correctly.
 
-### 1. Analysis Laboratory
-Upload any `.wav` file or select one from the local database. The system will generate:
-- **Oscillogram:** Time-domain signal visualization.
-- **Spectrogram:** Frequency-domain energy distribution.
-- **Bionic Space:** Topological distribution of voice oscillations.
-- **ML Verdict:** Classification probability based on MFCC features.
+The application currently starts with Dash debug mode enabled. Use it locally for experimentation.
 
-### 2. Training & Data Generation
-- Select a dataset from HuggingFace (e.g., `minds14`).
-- Choose a TTS Provider (e.g., `LuxTTS`).
-- Click **"Start Generation"**. The system will automatically create a `venv` for the provider, install its dependencies, start the background server, and generate synthetic voice samples.
-- Once finished, click **"Train Model"** to update the Random Forest classifier with new data.
+## Prepare a small dataset
 
-## 🔬 Running Experiments
+Create `.env` from the supplied example if the selected dataset requires Hugging Face authentication:
 
-To run a comparative scientific experiment and generate a markdown report:
+```bash
+cp .env.example .env
+```
+
+The variable name used by the application is case-sensitive:
+
+```dotenv
+HuggingFace_TOKEN=replace_with_your_token
+```
+
+Start with the Edge TTS provider, which does not require the local LuxTTS or MOSS servers:
+
+```bash
+poetry run python dataset_builder.py \
+  --samples 10 \
+  --provider edge \
+  --dataset PolyAI/minds14 \
+  --config en-US \
+  --split train
+```
+
+The builder writes WAV samples under `dataset/human/` and `dataset/ai/`. `--samples` requests a number of pairs; successful completion depends on dataset access, compatible audio/text fields, and the TTS service. Ten pairs are a workflow check, not a meaningful benchmark.
+
+If no usable samples are produced, inspect the logs and stop the process rather than assuming it is progressing; the builder retries failed attempts.
+
+### Other TTS providers
+
+The CLI also exposes `lux`, `mosstts`, and `voicebox`. Their integrations depend on external repositories or running services.
+
+The repository contains `.gitmodules` declarations. Check whether your checkout actually contains the required external sources. Where submodule entries are available, initialize the required provider:
+
+```bash
+git submodule update --init --recursive
+```
+
+If this does not populate the provider directory, follow the corresponding upstream repository's installation instructions and place it at the path expected by `dataset_builder.py`. Upstream links are listed in `.gitmodules`.
+
+Local server helpers can create environments, install packages, and download model resources. They currently assume Unix-style `venv/bin/python` paths. Their dependencies and hardware requirements are separate from the main application's environment.
+
+## Train the classifier
+
+After collecting both human and AI samples:
+
+```bash
+poetry run python src/train_model.py
+```
+
+This updates `models/rf_model.pkl` and `models/rf_scaler.pkl`. Preserve existing model files separately if you want to compare versions.
+
+The script attempts five-fold cross-validation using a scaler/model pipeline. It then trains a final model on all available samples and prints a classification report on those same training samples. That final report is a training diagnostic, not a held-out test result.
+
+## Evaluation boundaries
+
+- No benchmark accuracy is claimed in this README.
+- Current evaluation does not enforce separation by speaker, recording source, or TTS provider.
+- Source-specific recording conditions can influence classification.
+- Random Forest probabilities are model outputs, not independently calibrated guarantees of authenticity.
+- Stronger evaluation would use independent test data, documented dataset provenance, and explicit failure analysis.
+
+`run_experiment.py` compares Edge and Lux samples and writes `EXPERIMENT_REPORT.md`:
+
 ```bash
 poetry run python run_experiment.py
 ```
-Results will be saved in `EXPERIMENT_REPORT.md`.
 
-## 📜 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This requires the data sources and both providers to be configured. The generated report contains fixed narrative conclusions; check them against the measured results before using the report.
 
----
-*Created as part of an investigation into high-fidelity voice synthesis detection.*
+## Tests
+
+```bash
+poetry run python -m pytest tests -q
+```
+
+The tests exercise selected signal-analysis and classifier behavior, including training on generated feature arrays. Passing these tests does not establish accuracy on real-world audio.
+
+## Code map
+
+| File | Responsibility |
+| --- | --- |
+| `src/app.py` | Dash interface and callbacks |
+| `src/ml_core.py` | Feature extraction, model persistence, prediction |
+| `src/bionic_core.py` | Experimental signal analysis |
+| `src/train_model.py` | Training and evaluation output |
+| `dataset_builder.py` | Dataset ingestion and TTS generation |
+| `src/servers/` | Local TTS wrappers |
+| `run_experiment.py` | Provider comparison and report generation |
+
+## License
+
+[MIT](LICENSE) for this repository's code. External models, datasets, and TTS repositories retain their own licenses and access conditions.
